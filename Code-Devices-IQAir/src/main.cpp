@@ -47,7 +47,7 @@ void getIQAirData() {
 
         Serial.println("------ IQAir ------");
         Serial.print("Quận: "); Serial.println(city);
-        Serial.print("Thành phố: "); Serial.println(city);
+        Serial.print("Thành phố: "); Serial.println(state);
         Serial.print("Quốc gia: "); Serial.println(country);
         Serial.print("AQI (US): "); Serial.println(aqi);
       } else {
