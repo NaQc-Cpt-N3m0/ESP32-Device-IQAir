@@ -34,7 +34,7 @@ void setup() {
 
   display.setTextSize(3);             // Kích thước chữ
   display.setTextColor(WHITE); 
-  display.setCursor(0, 10);           // Bắt đầu từ tạo độ nào
+  display.setCursor(0, 0);           // Bắt đầu từ tạo độ nào
   // Display static text
   display.println("Hello, world!"); 
   display.display();                  // Hiện thị những gì đã setup
