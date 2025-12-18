@@ -9,6 +9,17 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
+// Khai báo thư viện cho quản lý Wifi
+#include <WiFiManager.h>
+
+
+// Thư viện lấy thời gian: 
+#include "time.h"
+
+// múi giờ Việt Nam
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 7 * 3600;
+const int   daylightOffset_sec = 0;
 
 #define ledC 2
 
@@ -396,6 +407,55 @@ void testanimate(const uint8_t *bitmap, uint8_t w, uint8_t h) {
   }
 }
 
+
+
+
+// Xử lý cấu hình Wifi
+void wifi_conf()
+{
+   WiFiManager wm;
+    // reset settings - wipe stored credentials for testing
+    // these are stored by the esp library
+    //wm.resetSettings();
+
+    // Automatically connect using saved credentials,
+    // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
+    // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
+    // then goes into a blocking loop awaiting configuration and will return success result
+
+    bool res;
+    // res = wm.autoConnect(); // auto generated AP name from chipid
+    // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
+    res = wm.autoConnect("AutoConnectAP","password"); // password protected ap
+
+    if(!res) {
+        Serial.println("Failed to connect");
+        // ESP.restart();
+    } 
+    else {
+        //if you get here you have connected to the WiFi    
+        Serial.println("connected...yeey :)");
+    }
+
+}
+
+// Hiện thị Oled
+void display_oled_text(String text, uint8_t line)
+{
+    uint8_t textSize = 1;
+    uint8_t lineHeight = 8 * textSize;   // 24px cho size 3
+    uint8_t yPos = line * lineHeight;    
+
+    display.setTextSize(textSize);
+    display.setTextColor(WHITE);
+    display.setCursor(0, yPos);
+
+    display.println(text);
+    display.display();
+}
+
+
+
 void setup() {
 
   // Cấu hình Wifi
@@ -403,24 +463,10 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  Serial.println("Dang ket noi WiFi...");
-  WiFi.begin(ssid, password);
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
-  while(WiFi.status() != WL_CONNECTED)   // Kiểm tra kết nối Wifi
-  {
-    delay(500);
-    Serial.print(".");
-
-  }
-  
-  Serial.println();
-  Serial.println("Da ket noi WiFi!");
-  Serial.print("IP ESP32: ");
-  Serial.println(WiFi.localIP());
-  
-
-   // Gọi API
-  getIQAirData();
+  // Gọi API
+  //getIQAirData();
 
   // Khai báo chân I2C TÙY Ý
   Wire.begin(22, 23);   // SDA = GPIO21, SCL = GPIO22
@@ -461,82 +507,146 @@ void setup() {
   // Xóa toàn bộ bộ nhớ đệm (buffer)
   // Lúc này màn hình vẫn CHƯA đổi
   display.clearDisplay();
+  display.display(); 
+
 
   /**************************************************
-   * VẼ 1 ĐIỂM ẢNH (PIXEL)
-   **************************************************/
+   * Cấu hình Wifi khi khởi động
+   **************************************************/ 
+    WiFiManager wm;
+    // reset settings - wipe stored credentials for testing
+    // these are stored by the esp library
+    //wm.resetSettings();
 
-  // Vẽ 1 pixel màu trắng tại tọa độ (x=10, y=10)
-  display.drawPixel(10, 10, WHITE);
+    // Automatically connect using saved credentials,
+    // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
+    // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
+    // then goes into a blocking loop awaiting configuration and will return success result
+    display_oled_text("Config Wifi", 0);   // dòng 1
+    display_oled_text("name: AutoConnectAP ", 1);   // dòng 1
+    display_oled_text("pw: password ", 2);   // dòng 1
+    bool res;
+    // res = wm.autoConnect(); // auto generated AP name from chipid
+    // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
+    res = wm.autoConnect("AutoConnectAP","password"); // password protected ap
 
-  // Show the display buffer on the screen. You MUST call display() after
-  // Đẩy buffer ra màn hình để hiển thị pixel
-  display.display();
-  delay(2000);
-
-  // display.display() is NOT necessary after every single drawing command,
-  // unless that's what you want...rather, you can batch up a bunch of
-  // drawing operations and then update the screen all at once by calling
-  // display.display(). These examples demonstrate both approaches...
-
-  Serial.println("Vẽ nhiều đường thẳng");
-  testdrawline();      // Vẽ nhiều đường thẳng
-
-  Serial.println("Vẽ nhiều đường thẳng");
-  testdrawrect();      // Vẽ nhiều đường thẳng
-
-  Serial.println("Vẽ hình chữ nhật (tô đầy)");
-  testfillrect();      // Vẽ hình chữ nhật (tô đầy)
-
-  Serial.println("Vẽ hình tròn (viền)");
-  testdrawcircle();    /// Vẽ hình tròn (viền)
-
-  Serial.println("Vẽ hình tròn (tô đầy)");
-  testfillcircle();    // Vẽ hình tròn (tô đầy)
-
-  Serial.println("Vẽ hình chữ nhật bo góc (viền)");
-  testdrawroundrect(); // Vẽ hình chữ nhật bo góc (viền)
-
-  Serial.println("Vẽ hình chữ nhật bo góc (tô đầy)");
-  testfillroundrect(); // Vẽ hình chữ nhật bo góc (tô đầy)
-
-  Serial.println("Vẽ tam giác (viền)");
-  testdrawtriangle();  // Vẽ tam giác (viền)
-
-  Serial.println("Vẽ tam giác (tô đầy)");
-  testfilltriangle();  // Vẽ tam giác (tô đầy)
-
-  Serial.println("Vẽ ký tự đơn (font mặc định)");
-  testdrawchar();      /// Vẽ ký tự đơn (font mặc định)
-
-  Serial.println("// Vẽ chữ với nhiều kiểu (size, màu)");
-  testdrawstyles();    // Vẽ chữ với nhiều kiểu (size, màu)
-
-  Serial.println("Demo chữ chạy (scroll)");
-  testscrolltext();    // Demo chữ chạy (scroll)
-  
-  Serial.println("Vẽ ảnh bitmap nhỏ");
-  testdrawbitmap();    // Vẽ ảnh bitmap nhỏ
-
-  // Invert and restore display, pausing in-between
-  display.invertDisplay(true);
-  delay(1000);
-  display.invertDisplay(false);
-  delay(1000);
-
-  /**************************************************
-   * ANIMATION BITMAP
-   **************************************************/
-
-  // Hiển thị ảnh bitmap động (animation)
-  // logo_bmp      : mảng dữ liệu ảnh
-  // LOGO_WIDTH    : chiều rộng ảnh
-  // LOGO_HEIGHT   : chiều cao ảnh
-  testanimate(logo_bmp, LOGO_WIDTH, LOGO_HEIGHT); // Animate bitmaps
-  
+    if(!res) {
+        Serial.println("Failed to connect");
+        // ESP.restart();
+        display_oled_text("==> Failed to connect", 4);   // dòng 1
+    } 
+    else {
+        //if you get here you have connected to the WiFi    
+        Serial.println("connected...yeey :)");
+        display_oled_text("==> connected wifi", 4);  
+    }
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  // display.clearDisplay();
+  // display.display(); 
+
+  while (1)
+  {
+    // Lấy dữ liệu API từ IQ Air
+    display.clearDisplay();
+    display.display(); 
+
+    if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi chua ket noi!");
+    return;
+  }
+
+  HTTPClient http;
+
+  String url = "http://api.airvisual.com/v2/nearest_city?key=" + apiKey;
+  Serial.println("GET: " + url);
+
+  http.begin(url);
+  int httpCode = http.GET();
+
+  if (httpCode > 0) {
+    Serial.printf("HTTP Code: %d\n", httpCode);
+
+    if (httpCode == HTTP_CODE_OK) {
+      String payload = http.getString();
+      Serial.println(payload);
+
+      // Parse JSON
+      StaticJsonDocument<2048> doc;
+      DeserializationError error = deserializeJson(doc, payload);
+
+      if (!error) {
+        const char* city    = doc["data"]["city"];
+        const char* state    = doc["data"]["state"];
+        const char* country = doc["data"]["country"];
+        int aqi             = doc["data"]["current"]["pollution"]["aqius"];
+
+        Serial.println("------ IQAir ------");
+        Serial.print("Quận: "); Serial.println(city);  
+        Serial.print("Thành phố: "); Serial.println(state);
+        Serial.print("Quốc gia: "); Serial.println(country);
+        Serial.print("AQI (US): "); Serial.println(aqi);
+
+        display.clearDisplay();
+
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+
+        display.setCursor(0, 0);
+        display.print("Quan: ");
+        display.println(city);
+
+        display.setCursor(0, 12);
+        display.print("TP: ");
+        display.println(state);
+
+        display.setCursor(0, 24);
+        display.print("Quoc gia: ");
+        display.println(country);
+
+        display.setCursor(0, 36);
+        display.print("AQI: ");
+        display.println(aqi);
+
+        struct tm timeinfo;
+        if (getLocalTime(&timeinfo)) {
+            Serial.printf("Date/Time: %02d/%02d/%04d %02d:%02d:%02d\n",
+            timeinfo.tm_mday,
+            timeinfo.tm_mon + 1,
+            timeinfo.tm_year + 1900,
+            timeinfo.tm_hour,
+            timeinfo.tm_min,
+            timeinfo.tm_sec);
+
+
+            char buffer[16];
+            sprintf(buffer, "%02d:%02d:%02d",
+                timeinfo.tm_hour,
+                timeinfo.tm_min,
+                timeinfo.tm_sec
+            );
+
+            display_oled_text(buffer, 6); // dòng 5
+        }
+
+        display.display();
+
+
+      } else {
+        Serial.println("Loi parse JSON!");
+      }
+    }
+  } else {
+    Serial.printf("HTTP GET failed: %s\n", http.errorToString(httpCode).c_str());
+  }
+
+  http.end();
+    
+    delay(60000);
+  }
+  
+
 }
 
